@@ -48,6 +48,8 @@ The Pages workflow builds `frontend/` and publishes `frontend/dist` on pushes to
 
 In **Settings > Secrets and variables > Actions > Variables**, create `VITE_ADMIN_USER_POOL_ID` and `VITE_ADMIN_USER_POOL_CLIENT_ID` using the existing Cognito stack outputs. Optionally set `VITE_BLOCKBUSTER_ADMIN_API_BASE_URL`; if absent, the configured Blockbuster Theatre default is used. These values are public in the built app, not secrets. The workflow fails before deployment if either Cognito value is missing. Ensure each spoke permits `https://admin.nml-applications.com` in its CORS configuration.
 
+If sign-in reports `SECRET_HASH was not received`, the app is using a client configured with a secret. Browser apps cannot keep a client secret: use the `AdminUserPoolClientId` output from the deployed admin stack, whose client is configured with `generateSecret: false`, together with its `AdminUserPoolId` output. Check that the deployed stack is current if those outputs are unavailable or the client still requires a secret. After updating the Actions variables, rerun the Pages workflow; Vite embeds them at build time. Never put a client secret in a `VITE_` variable.
+
 ## Spoke contract
 
 Add projects to `frontend/src/config/spokes.ts`. Each spoke must permit the console origin in CORS, including `GET`, `PATCH`, `Authorization`, and `Content-Type`, and independently verify the Cognito ID token's signature, issuer, audience, expiry, and authorization on every request. The console sends the ID token in the authorization header.
