@@ -1,0 +1,60 @@
+name: Deploy admin app to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Build React app
+        working-directory: frontend
+        env:
+          VITE_ADMIN_USER_POOL_ID: ${{ vars.VITE_ADMIN_USER_POOL_ID }}
+          VITE_ADMIN_USER_POOL_CLIENT_ID: ${{ vars.VITE_ADMIN_USER_POOL_CLIENT_ID }}
+          VITE_BLOCKBUSTER_ADMIN_API_BASE_URL: ${{ vars.VITE_BLOCKBUSTER_ADMIN_API_BASE_URL }}
+        run: |
+          if [ -z "$VITE_ADMIN_USER_POOL_ID" ] || [ -z "$VITE_ADMIN_USER_POOL_CLIENT_ID" ]; then
+            echo "::error::Set VITE_ADMIN_USER_POOL_ID and VITE_ADMIN_USER_POOL_CLIENT_ID in repository Actions variables."
+            exit 1
+          fi
+          npm run build
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
