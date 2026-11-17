@@ -17,6 +17,9 @@ const pool = configurationError ? null : new CognitoUserPool({
   ClientId: clientId,
 })
 
+const signedOut = new WeakSet<CognitoUser>()
+const pendingSessions = new Map<CognitoUser, Set<Promise<string>>>()
+
 export type LoginResult =
   | { kind: 'signed-in'; user: CognitoUser }
   | { kind: 'new-password'; user: CognitoUser; requiredAttributes: string[] }
@@ -49,13 +52,28 @@ export function currentUser(): CognitoUser | null {
 }
 
 export function idToken(user: CognitoUser): Promise<string> {
-  return new Promise((resolve, reject) => {
+  if (signedOut.has(user)) return Promise.reject(new Error('Please sign in again.'))
+  const pending = new Promise<string>((resolve, reject) => {
     user.getSession((error: Error | null, session: CognitoUserSession | null) => {
-      if (error || !session?.isValid()) {
+      if (signedOut.has(user)) {
+        reject(new Error('Please sign in again.'))
+      } else if (error || !session?.isValid()) {
         reject(error ?? new Error('Your session has expired. Please sign in again.'))
       } else {
         resolve(session.getIdToken().getJwtToken())
       }
     })
   })
+  const sessions = pendingSessions.get(user) ?? new Set<Promise<string>>()
+  sessions.add(pending)
+  pendingSessions.set(user, sessions)
+  void pending.then(() => sessions.delete(pending), () => sessions.delete(pending))
+  return pending
+}
+
+export async function signOut(user: CognitoUser): Promise<void> {
+  signedOut.add(user)
+  await Promise.allSettled(pendingSessions.get(user) ?? [])
+  user.signOut()
+  pendingSessions.delete(user)
 }

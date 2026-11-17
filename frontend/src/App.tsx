@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { CognitoUser } from 'amazon-cognito-identity-js'
-import { completeNewPassword, configurationError, currentUser, idToken, signIn, type LoginResult } from './auth'
+import { completeNewPassword, configurationError, currentUser, idToken, signIn, signOut, type LoginResult } from './auth'
 import { spokes, type SpokeConfig } from './config/spokes'
 import './App.css'
 
@@ -190,6 +190,7 @@ export default function App() {
   const [user, setUser] = useState<CognitoUser | null>(null)
   const [existing] = useState(currentUser)
   const [loading, setLoading] = useState(!!existing)
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -200,6 +201,9 @@ export default function App() {
     return () => { active = false }
   }, [existing])
 
-  if (loading) return <main className="login-page">Loading…</main>
-  return user ? <Dashboard user={user} onSignOut={() => { user.signOut(); setUser(null) }} /> : <Login onLogin={setUser} />
+  if (loading || signingOut) return <main className="login-page">{signingOut ? 'Signing out…' : 'Loading…'}</main>
+  return user ? <Dashboard user={user} onSignOut={() => {
+    setSigningOut(true)
+    void signOut(user).finally(() => { setUser(null); setSigningOut(false) })
+  }} /> : <Login onLogin={setUser} />
 }
