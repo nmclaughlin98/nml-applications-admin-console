@@ -61,7 +61,10 @@ function Login({ onLogin }: { onLogin: (user: CognitoUser) => void }) {
   return (
     <main className="login-page">
       <form className="login-card" onSubmit={submit}>
-        <p className="eyebrow">NML APPLICATIONS</p>
+        <div className="brand-lockup">
+          <span className="brand-mark" aria-hidden="true">N</span>
+          <p className="eyebrow">NML APPLICATIONS</p>
+        </div>
         <h1>Central Admin</h1>
         <p>{challenge ? 'Set a new password to complete your account setup.' : 'Sign in with your administrator account.'}</p>
         {!challenge && <label>Email<input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>}
@@ -137,7 +140,10 @@ function Dashboard({ user, onSignOut }: { user: CognitoUser; onSignOut: () => vo
   return (
     <div className="layout">
       <aside className="sidebar">
-        <p className="eyebrow">NML APPLICATIONS</p>
+        <div className="brand-lockup">
+          <span className="brand-mark" aria-hidden="true">N</span>
+          <p className="eyebrow">NML APPLICATIONS</p>
+        </div>
         <h1>Central Admin</h1>
         <label className="project-label">Project
           <select value={projectId} disabled={saving} onChange={(e) => {
